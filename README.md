@@ -22,76 +22,6 @@ A full-stack web application for tracking daily meals, nutrition, and weight los
 - **Charts**: Recharts for weight tracking visualization
 - **Font**: EB Garamond
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ installed
-- A Supabase account (free tier is fine)
-- npm or pnpm package manager
-
-### 1. Install Dependencies
-
-```bash
-npm install
-```
-
-### 2. Set Up Supabase
-
-Follow the detailed guide in [supabase/README.md](./supabase/README.md) to:
-1. Create a Supabase project
-2. Get your credentials
-3. Set up the database schema
-4. Configure Row Level Security
-
-### 3. Configure Environment Variables
-
-Create a `.env.local` file in the root directory:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-```
-
-See `.env.local.example` for reference.
-
-### 4. Run the Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
-
-```
-meal-tracker/
-├── app/                      # Next.js app router pages
-│   ├── (auth)/              # Authentication pages
-│   ├── (app)/               # Protected application pages
-│   ├── api/                 # API routes
-│   ├── layout.tsx           # Root layout
-│   └── globals.css          # Global styles
-├── components/              # React components
-│   ├── ui/                  # shadcn/ui components
-│   ├── week/                # Week view components
-│   ├── meals/               # Meal tracking components
-│   ├── foods/               # Food library components
-│   └── weight/              # Weight tracking components
-├── lib/                     # Utilities and helpers
-│   ├── supabase/           # Supabase client configuration
-│   ├── utils/              # Utility functions
-│   └── types.ts            # TypeScript type definitions
-├── supabase/               # Database schema and policies
-│   ├── schema.sql          # Database tables
-│   ├── rls-policies.sql    # Row Level Security policies
-│   └── README.md           # Supabase setup guide
-└── hooks/                  # Custom React hooks
-```
-
-## Usage Guide
-
 ### For Clients (Users)
 
 1. **Sign Up**: Create an account with your email
@@ -105,39 +35,6 @@ meal-tracker/
 1. **Sign Up**: Create a dietitian account
 2. **View Client Data**: Access client meal logs and nutrition data (read-only)
 3. **Monitor Progress**: Review weekly meal patterns and weight trends
-
-## Development
-
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
-
-### Adding shadcn/ui Components
-
-```bash
-npx shadcn@latest add [component-name]
-```
-
-## Deployment
-
-### Deploy to Vercel
-
-1. Push your code to GitHub
-2. Go to [Vercel](https://vercel.com)
-3. Import your repository
-4. Add environment variables in Vercel project settings:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-5. Deploy
-
-Vercel will automatically deploy your app and provide a URL.
-
-### Production Supabase Setup
-
-Make sure to use production Supabase credentials (not development) in your Vercel environment variables.
 
 ## License
 
