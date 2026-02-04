@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { FoodSearchModal } from './food-search-modal';
 
 const recipeItemSchema = z.object({
   food_name: z.string().min(1, 'Food name is required'),
@@ -13,6 +14,7 @@ const recipeItemSchema = z.object({
   carbs: z.number().min(0).optional(),
   fat: z.number().min(0).optional(),
   fiber: z.number().min(0).optional(),
+  water: z.number().min(0).optional(),
 });
 
 type RecipeItemFormData = z.infer<typeof recipeItemSchema>;
@@ -24,10 +26,12 @@ interface RecipeItemFormProps {
 
 export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
   const [loading, setLoading] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<RecipeItemFormData>({
     resolver: zodResolver(recipeItemSchema),
@@ -37,8 +41,29 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
       carbs: 0,
       fat: 0,
       fiber: 0,
+      water: 0,
     },
   });
+
+  const handleFoodSelect = (food: {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number;
+    water: number;
+    defaultAmount: string;
+  }) => {
+    setValue('food_name', food.name);
+    setValue('amount', food.defaultAmount);
+    setValue('calories', food.calories);
+    setValue('protein', food.protein);
+    setValue('carbs', food.carbs);
+    setValue('fat', food.fat);
+    setValue('fiber', food.fiber);
+    setValue('water', food.water);
+  };
 
   const onSubmit = async (data: RecipeItemFormData) => {
     setLoading(true);
@@ -47,12 +72,27 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-zinc-300 bg-zinc-50 p-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <label htmlFor="food_name" className="block text-sm font-medium text-zinc-900">
-            Ingredient Name
-          </label>
+    <>
+      <FoodSearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        onSelect={handleFoodSelect}
+      />
+
+      <div className="space-y-3 rounded-lg border border-zinc-300 bg-zinc-50 p-4">
+        <button
+          type="button"
+          onClick={() => setSearchModalOpen(true)}
+          className="w-full rounded-md border-2 border-dashed border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
+        >
+          🔍 Search Food Database
+        </button>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <label htmlFor="food_name" className="block text-sm font-medium text-zinc-900">
+              Ingredient Name
+            </label>
           <input
             id="food_name"
             type="text"
@@ -134,6 +174,32 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
             className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
           />
         </div>
+
+        <div>
+          <label htmlFor="fiber" className="block text-sm font-medium text-zinc-900">
+            Fiber (g)
+          </label>
+          <input
+            id="fiber"
+            type="number"
+            step="0.1"
+            {...register('fiber', { valueAsNumber: true })}
+            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="water" className="block text-sm font-medium text-zinc-900">
+            Water (oz)
+          </label>
+          <input
+            id="water"
+            type="number"
+            step="0.1"
+            {...register('water', { valueAsNumber: true })}
+            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          />
+        </div>
       </div>
 
       <div className="flex gap-2">
@@ -153,6 +219,7 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
           Cancel
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

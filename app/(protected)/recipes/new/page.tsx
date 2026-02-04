@@ -25,6 +25,7 @@ interface RecipeIngredient {
   carbs?: number;
   fat?: number;
   fiber?: number;
+  water?: number;
 }
 
 export default function NewRecipePage() {
@@ -64,8 +65,9 @@ export default function NewRecipePage() {
         carbs: totals.carbs + (item.carbs || 0),
         fat: totals.fat + (item.fat || 0),
         fiber: totals.fiber + (item.fiber || 0),
+        water: totals.water + (item.water || 0),
       }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, water: 0 }
     );
   };
 
@@ -94,6 +96,7 @@ export default function NewRecipePage() {
           total_carbs: totals.carbs,
           total_fat: totals.fat,
           total_fiber: totals.fiber,
+          total_water: totals.water,
         })
         .select()
         .single();
@@ -110,6 +113,7 @@ export default function NewRecipePage() {
         carbs: item.carbs || 0,
         fat: item.fat || 0,
         fiber: item.fiber || 0,
+        water: item.water || 0,
         order: index + 1,
       }));
 
@@ -217,7 +221,7 @@ export default function NewRecipePage() {
                   <p className="font-medium">{item.food_name}</p>
                   <p className="text-zinc-600">{item.amount}</p>
                   <p className="text-zinc-500 text-xs mt-1">
-                    {item.calories} cal | P: {item.protein || 0}g | C: {item.carbs || 0}g | F: {item.fat || 0}g
+                    {item.calories} cal | P: {item.protein || 0}g | C: {item.carbs || 0}g | F: {item.fat || 0}g | Fiber: {item.fiber || 0}g | Water: {item.water || 0}oz
                   </p>
                 </div>
                 <button
@@ -241,7 +245,7 @@ export default function NewRecipePage() {
           {ingredients.length > 0 && (
             <div className="border-t border-zinc-200 pt-4">
               <p className="text-sm font-medium text-zinc-900 mb-2">Total Nutrition</p>
-              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-6">
                 <div>
                   <p className="text-zinc-600">Calories</p>
                   <p className="font-medium">{totals.calories}</p>
@@ -261,6 +265,10 @@ export default function NewRecipePage() {
                 <div>
                   <p className="text-zinc-600">Fiber</p>
                   <p className="font-medium">{totals.fiber.toFixed(1)}g</p>
+                </div>
+                <div>
+                  <p className="text-zinc-600">Water</p>
+                  <p className="font-medium">{totals.water.toFixed(1)} oz</p>
                 </div>
               </div>
             </div>

@@ -75,6 +75,7 @@ export default function RecipeDetailPage() {
       carbs: Number((recipe.total_carbs / recipe.servings).toFixed(1)),
       fat: Number((recipe.total_fat / recipe.servings).toFixed(1)),
       fiber: Number((recipe.total_fiber / recipe.servings).toFixed(1)),
+      water: Number(((recipe.total_water || 0) / recipe.servings).toFixed(1)),
     };
   };
 
@@ -154,7 +155,7 @@ export default function RecipeDetailPage() {
                   <p className="font-medium text-zinc-900">{item.calories} cal</p>
                 </div>
                 <p className="text-zinc-500 text-xs mt-1">
-                  P: {item.protein || 0}g | C: {item.carbs || 0}g | F: {item.fat || 0}g | Fiber: {item.fiber || 0}g
+                  P: {item.protein || 0}g | C: {item.carbs || 0}g | F: {item.fat || 0}g | Fiber: {item.fiber || 0}g | Water: {item.water || 0}oz
                 </p>
               </div>
             ))}
@@ -168,7 +169,7 @@ export default function RecipeDetailPage() {
         <div className="space-y-4">
           <div>
             <h3 className="text-sm font-medium text-zinc-900 mb-2">Total (All Servings)</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-6">
               <div>
                 <p className="text-zinc-600">Calories</p>
                 <p className="font-medium">{recipe.total_calories}</p>
@@ -189,13 +190,17 @@ export default function RecipeDetailPage() {
                 <p className="text-zinc-600">Fiber</p>
                 <p className="font-medium">{recipe.total_fiber.toFixed(1)}g</p>
               </div>
+              <div>
+                <p className="text-zinc-600">Water</p>
+                <p className="font-medium">{(recipe.total_water || 0).toFixed(1)} oz</p>
+              </div>
             </div>
           </div>
 
           {perServing && (
             <div className="border-t border-zinc-200 pt-4">
               <h3 className="text-sm font-medium text-zinc-900 mb-2">Per Serving</h3>
-              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-6">
                 <div>
                   <p className="text-zinc-600">Calories</p>
                   <p className="font-medium">{perServing.calories}</p>
@@ -215,6 +220,10 @@ export default function RecipeDetailPage() {
                 <div>
                   <p className="text-zinc-600">Fiber</p>
                   <p className="font-medium">{perServing.fiber}g</p>
+                </div>
+                <div>
+                  <p className="text-zinc-600">Water</p>
+                  <p className="font-medium">{perServing.water} oz</p>
                 </div>
               </div>
             </div>

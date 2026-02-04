@@ -63,6 +63,7 @@ export default function RecipesPage() {
       carbs: Number((recipe.total_carbs / recipe.servings).toFixed(1)),
       fat: Number((recipe.total_fat / recipe.servings).toFixed(1)),
       fiber: Number((recipe.total_fiber / recipe.servings).toFixed(1)),
+      water: Number(((recipe.total_water || 0) / recipe.servings).toFixed(1)),
     };
   };
 
@@ -136,6 +137,14 @@ export default function RecipesPage() {
                     <div>
                       <p className="text-zinc-600">Fat</p>
                       <p className="font-medium">{perServing.fat}g</p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-600">Fiber</p>
+                      <p className="font-medium">{perServing.fiber}g</p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-600">Water</p>
+                      <p className="font-medium">{perServing.water} oz</p>
                     </div>
                   </div>
                 </div>

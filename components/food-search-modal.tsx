@@ -73,7 +73,7 @@ export function FoodSearchModal({ isOpen, onClose, onSelect }: FoodSearchModalPr
       carbs: Math.round(food.carbs * 10) / 10,
       fat: Math.round(food.fat * 10) / 10,
       fiber: Math.round(food.fiber * 10) / 10,
-      water: 0,
+      water: Math.round(food.water * 10) / 10,
       defaultAmount: servingText,
     });
 

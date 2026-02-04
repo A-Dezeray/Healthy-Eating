@@ -111,6 +111,7 @@ export interface Recipe {
   total_fat: number;
   total_fiber: number;
   total_protein: number;
+  total_water?: number;
   created_at: string;
   updated_at: string;
   recipe_items?: RecipeItem[];
@@ -127,6 +128,7 @@ export interface RecipeItem {
   fat?: number;
   fiber?: number;
   protein?: number;
+  water?: number;
   order: number;
   created_at: string;
 }
