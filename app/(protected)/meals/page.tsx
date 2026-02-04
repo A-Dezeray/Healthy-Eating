@@ -163,6 +163,7 @@ export default function MealsPage() {
           total_fat: totals.fat,
           total_fiber: totals.fiber,
           total_protein: totals.protein,
+          water_intake: totals.water,
         })
         .eq('id', dailyLog.id);
 

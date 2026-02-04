@@ -10,6 +10,7 @@ interface FoodSearchResult {
   carbs: number;
   fat: number;
   fiber: number;
+  water: number;
   servingSize: number;
   servingSizeUnit: string;
 }
@@ -24,6 +25,7 @@ interface FoodSearchModalProps {
     carbs: number;
     fat: number;
     fiber: number;
+    water: number;
     defaultAmount: string;
   }) => void;
 }
@@ -71,6 +73,7 @@ export function FoodSearchModal({ isOpen, onClose, onSelect }: FoodSearchModalPr
       carbs: Math.round(food.carbs * 10) / 10,
       fat: Math.round(food.fat * 10) / 10,
       fiber: Math.round(food.fiber * 10) / 10,
+      water: 0,
       defaultAmount: servingText,
     });
 

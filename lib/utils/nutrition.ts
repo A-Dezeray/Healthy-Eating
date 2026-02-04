@@ -95,6 +95,7 @@ export function calculateDailyTotals(meals: Meal[]) {
     fat: 0,
     fiber: 0,
     protein: 0,
+    water: 0,
   };
 
   meals.forEach(meal => {
@@ -105,6 +106,7 @@ export function calculateDailyTotals(meals: Meal[]) {
         totals.fat += item.fat || 0;
         totals.fiber += item.fiber || 0;
         totals.protein += item.protein || 0;
+        totals.water += item.water || 0;
       });
     }
   });

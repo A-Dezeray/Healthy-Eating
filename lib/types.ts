@@ -69,6 +69,7 @@ export interface MealItem {
   fat?: number;
   fiber?: number;
   protein?: number;
+  water?: number;
   notes?: string;
   order: number;
   created_at: string;
@@ -84,6 +85,7 @@ export interface Food {
   fat_per_serving?: number;
   fiber_per_serving?: number;
   protein_per_serving?: number;
+  water_per_serving?: number;
   usage_count: number;
   created_at: string;
   last_used_at: string;
@@ -138,6 +140,7 @@ export interface MealItemFormData {
   fat?: number;
   fiber?: number;
   protein?: number;
+  water?: number;
   notes?: string;
 }
 

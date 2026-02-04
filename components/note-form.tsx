@@ -51,6 +51,7 @@ export function NoteForm({ mealId, onSave, onCancel }: NoteFormProps) {
           carbs: 0,
           fat: 0,
           fiber: 0,
+          water: 0,
           notes: note,
           order: nextOrder,
         });

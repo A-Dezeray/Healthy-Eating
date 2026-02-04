@@ -66,6 +66,7 @@ CREATE TABLE foods (
   fat_per_serving DECIMAL(10, 2),
   fiber_per_serving DECIMAL(10, 2),
   protein_per_serving DECIMAL(10, 2),
+  water_per_serving DECIMAL(10, 2),
   usage_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_used_at TIMESTAMPTZ
@@ -83,6 +84,7 @@ CREATE TABLE meal_items (
   fat DECIMAL(10, 2),
   fiber DECIMAL(10, 2),
   protein DECIMAL(10, 2),
+  water DECIMAL(10, 2),
   "order" INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

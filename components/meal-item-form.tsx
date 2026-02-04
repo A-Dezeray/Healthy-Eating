@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { FoodSearchModal } from './food-search-modal';
 
 const mealItemSchema = z.object({
@@ -16,6 +17,7 @@ const mealItemSchema = z.object({
   fat: z.number().min(0).optional(),
   fiber: z.number().min(0).optional(),
   notes: z.string().optional(),
+  water: z.number().min(0).optional(),
 });
 
 type MealItemFormData = z.infer<typeof mealItemSchema>;
@@ -27,6 +29,7 @@ interface MealItemFormProps {
 }
 
 export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
@@ -45,6 +48,7 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
       carbs: 0,
       fat: 0,
       fiber: 0,
+      water: 0,
     },
   });
 
@@ -55,6 +59,7 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
     carbs: number;
     fat: number;
     fiber: number;
+    water: number;
     defaultAmount: string;
   }) => {
     setValue('food_name', food.name);
@@ -64,6 +69,7 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
     setValue('carbs', food.carbs);
     setValue('fat', food.fat);
     setValue('fiber', food.fiber);
+    setValue('water', food.water);
   };
 
   const onSubmit = async (data: MealItemFormData) => {
@@ -97,11 +103,42 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
           carbs: data.carbs || 0,
           fat: data.fat || 0,
           fiber: data.fiber || 0,
+          water: data.water || 0,
           notes: data.notes || null,
           order: nextOrder,
         });
 
       if (insertError) throw insertError;
+
+      if (user?.id) {
+        const { data: existingFood, error: existingFoodError } = await supabase
+          .from('foods')
+          .select('id')
+          .eq('user_id', user.id)
+          .ilike('name', data.food_name)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingFoodError) throw existingFoodError;
+
+        if (!existingFood) {
+          const { error: foodInsertError } = await supabase
+            .from('foods')
+            .insert({
+              user_id: user.id,
+              name: data.food_name,
+              default_amount: data.amount,
+              calories_per_serving: data.calories,
+              protein_per_serving: data.protein || 0,
+              carbs_per_serving: data.carbs || 0,
+              fat_per_serving: data.fat || 0,
+              fiber_per_serving: data.fiber || 0,
+              water_per_serving: data.water || 0,
+            });
+
+          if (foodInsertError) throw foodInsertError;
+        }
+      }
 
       onSave();
     } catch (err) {
@@ -214,6 +251,32 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
             id="fat"
             type="number"
             {...register('fat', { valueAsNumber: true })}
+            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="fiber" className="block text-sm font-medium text-zinc-900">
+            Fiber (g)
+          </label>
+          <input
+            id="fiber"
+            type="number"
+            step="0.1"
+            {...register('fiber', { valueAsNumber: true })}
+            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="water" className="block text-sm font-medium text-zinc-900">
+            Water (oz)
+          </label>
+          <input
+            id="water"
+            type="number"
+            step="0.1"
+            {...register('water', { valueAsNumber: true })}
             className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
           />
         </div>

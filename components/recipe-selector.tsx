@@ -81,6 +81,7 @@ export function RecipeSelector({ mealId, onSave, onCancel }: RecipeSelectorProps
           carbs: carbsPerServing * servings,
           fat: fatPerServing * servings,
           fiber: fiberPerServing * servings,
+          water: 0,
           order: nextOrder,
         });
 

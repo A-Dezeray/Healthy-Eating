@@ -15,6 +15,7 @@ const foodSchema = z.object({
   carbs_per_serving: z.number().min(0).optional(),
   fat_per_serving: z.number().min(0).optional(),
   fiber_per_serving: z.number().min(0).optional(),
+  water_per_serving: z.number().min(0).optional(),
 });
 
 type FoodFormData = z.infer<typeof foodSchema>;
@@ -28,6 +29,7 @@ interface Food {
   carbs_per_serving?: number;
   fat_per_serving?: number;
   fiber_per_serving?: number;
+  water_per_serving?: number;
   usage_count: number;
 }
 
@@ -53,6 +55,7 @@ export default function FoodsPage() {
       carbs_per_serving: 0,
       fat_per_serving: 0,
       fiber_per_serving: 0,
+      water_per_serving: 0,
     },
   });
 
@@ -93,6 +96,7 @@ export default function FoodsPage() {
           carbs_per_serving: data.carbs_per_serving || 0,
           fat_per_serving: data.fat_per_serving || 0,
           fiber_per_serving: data.fiber_per_serving || 0,
+          water_per_serving: data.water_per_serving || 0,
         });
 
       if (error) throw error;
@@ -118,6 +122,7 @@ export default function FoodsPage() {
           carbs_per_serving: data.carbs_per_serving || 0,
           fat_per_serving: data.fat_per_serving || 0,
           fiber_per_serving: data.fiber_per_serving || 0,
+          water_per_serving: data.water_per_serving || 0,
         })
         .eq('id', foodId);
 
@@ -159,6 +164,7 @@ export default function FoodsPage() {
       carbs_per_serving: food.carbs_per_serving || 0,
       fat_per_serving: food.fat_per_serving || 0,
       fiber_per_serving: food.fiber_per_serving || 0,
+      water_per_serving: food.water_per_serving || 0,
     });
   };
 
@@ -261,6 +267,26 @@ export default function FoodsPage() {
                 className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-900">Fiber (g)</label>
+              <input
+                type="number"
+                step="0.1"
+                {...register('fiber_per_serving', { valueAsNumber: true })}
+                className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-900">Water (oz)</label>
+              <input
+                type="number"
+                step="0.1"
+                {...register('water_per_serving', { valueAsNumber: true })}
+                className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
           </div>
 
           <button
@@ -326,6 +352,42 @@ export default function FoodsPage() {
                           className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
                         />
                       </div>
+                      <div>
+                        <label className="block text-xs text-zinc-600">Carbs (g)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          {...register('carbs_per_serving', { valueAsNumber: true })}
+                          className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-600">Fat (g)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          {...register('fat_per_serving', { valueAsNumber: true })}
+                          className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-600">Fiber (g)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          {...register('fiber_per_serving', { valueAsNumber: true })}
+                          className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-600">Water (oz)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          {...register('water_per_serving', { valueAsNumber: true })}
+                          className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                        />
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -356,6 +418,8 @@ export default function FoodsPage() {
                         {food.protein_per_serving ? ` | P: ${food.protein_per_serving}g` : ''}
                         {food.carbs_per_serving ? ` | C: ${food.carbs_per_serving}g` : ''}
                         {food.fat_per_serving ? ` | F: ${food.fat_per_serving}g` : ''}
+                        {food.fiber_per_serving ? ` | Fiber: ${food.fiber_per_serving}g` : ''}
+                        {food.water_per_serving ? ` | Water: ${food.water_per_serving}oz` : ''}
                       </p>
                     </div>
                     <div className="flex gap-2">
