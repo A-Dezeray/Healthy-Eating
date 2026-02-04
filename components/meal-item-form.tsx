@@ -141,8 +141,15 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
       }
 
       onSave();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+    } catch (err: unknown) {
+      console.error('Meal item save error:', err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        setError(String((err as { message: unknown }).message));
+      } else {
+        setError('An error occurred while saving');
+      }
     } finally {
       setLoading(false);
     }
