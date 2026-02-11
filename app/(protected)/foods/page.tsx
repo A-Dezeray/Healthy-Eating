@@ -223,7 +223,7 @@ export default function FoodsPage() {
                 type="text"
                 {...register('default_amount')}
                 className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                placeholder="e.g., per 4 oz, per cup"
+                placeholder="e.g., 1 cup, 1/2 cup"
               />
               {errors.default_amount && <p className="mt-1 text-sm text-red-600">{errors.default_amount.message}</p>}
             </div>
@@ -299,14 +299,15 @@ export default function FoodsPage() {
       )}
 
       <div className="rounded-lg border border-zinc-200 bg-white p-6">
-        <div className="mb-4">
+        <div className="flex items-center justify-between mb-4">
           <input
             type="text"
             placeholder="Search foods..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm"
           />
+          <span className="ml-3 text-sm text-zinc-500 whitespace-nowrap">{foods.length} foods</span>
         </div>
 
         {filteredFoods.length === 0 ? (

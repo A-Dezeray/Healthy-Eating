@@ -24,8 +24,8 @@ export interface DailyGoals {
 export interface Week {
   id: string;
   user_id: string;
-  start_date: string; // Wednesday
-  end_date: string; // Tuesday
+  start_date: string; // Sunday
+  end_date: string; // Saturday
   created_at: string;
 }
 
@@ -130,6 +130,24 @@ export interface RecipeItem {
   protein?: number;
   water?: number;
   order: number;
+  created_at: string;
+}
+
+export interface DietitianNote {
+  id: string;
+  author_id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  note_replies?: NoteReply[];
+}
+
+export interface NoteReply {
+  id: string;
+  note_id: string;
+  author_id: string;
+  content: string;
   created_at: string;
 }
 

@@ -26,6 +26,7 @@ export default function WeightPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
+  const [showAllLogs, setShowAllLogs] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -150,13 +151,13 @@ export default function WeightPage() {
         cutoffDate.setDate(now.getDate() - 7);
         break;
       case 'month':
-        cutoffDate.setDate(now.getDate() - 30);
+        cutoffDate = new Date(now.getFullYear(), now.getMonth(), 1);
         break;
       case 'year':
-        cutoffDate.setFullYear(now.getFullYear() - 1);
+        cutoffDate = new Date(now.getFullYear(), 0, 1);
         break;
       case 'all':
-        cutoffDate = new Date(0); // Beginning of time
+        cutoffDate = new Date(0);
         break;
     }
 
@@ -365,7 +366,7 @@ export default function WeightPage() {
           <p className="text-center text-zinc-500 py-8">No weight entries yet</p>
         ) : (
           <div className="space-y-2">
-            {weightLogs.map((log) => (
+            {(showAllLogs ? weightLogs : weightLogs.slice(0, 5)).map((log) => (
               <div
                 key={log.id}
                 className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50"
@@ -385,6 +386,14 @@ export default function WeightPage() {
                 </button>
               </div>
             ))}
+            {weightLogs.length > 5 && (
+              <button
+                onClick={() => setShowAllLogs(!showAllLogs)}
+                className="w-full rounded-md border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 transition-colors"
+              >
+                {showAllLogs ? 'Show less' : `Show all (${weightLogs.length} entries)`}
+              </button>
+            )}
           </div>
         )}
       </div>

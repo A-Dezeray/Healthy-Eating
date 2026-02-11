@@ -36,34 +36,45 @@ export default function MealsPage() {
   const fetchDayData = async () => {
     setLoading(true);
     try {
-      // Helper function to get Wednesday of the week for any date
+      // Helper function to get Sunday of the week for any date
       const getWeekStart = (date: Date) => {
         const d = new Date(date);
         const day = d.getDay();
-        const diff = day >= 3 ? day - 3 : day + 4; // Wednesday is day 3
-        d.setDate(d.getDate() - diff);
+        d.setDate(d.getDate() - day); // Sunday is day 0
         return formatDateForDB(d);
       };
 
       const getWeekEnd = (startDate: string) => {
-        const d = new Date(startDate);
-        d.setDate(d.getDate() + 6); // Tuesday is 6 days after Wednesday
+        const d = new Date(startDate + 'T00:00:00');
+        d.setDate(d.getDate() + 6); // Saturday is 6 days after Sunday
         return formatDateForDB(d);
       };
 
-      const weekStart = getWeekStart(new Date(selectedDate));
+      const weekStart = getWeekStart(new Date(selectedDate + 'T00:00:00'));
       const weekEnd = getWeekEnd(weekStart);
 
-      // Fetch or create week
+      // Try to find a week that contains the selected date
       let { data: week, error: weekError } = await supabase
         .from('weeks')
         .select('*')
         .eq('user_id', user?.id)
-        .eq('start_date', weekStart)
+        .lte('start_date', selectedDate)
+        .gte('end_date', selectedDate)
         .single();
 
       if (weekError && weekError.code !== 'PGRST116') {
-        throw weekError;
+        // If no containing week found, try exact Sunday start match
+        const { data: exactWeek, error: exactError } = await supabase
+          .from('weeks')
+          .select('*')
+          .eq('user_id', user?.id)
+          .eq('start_date', weekStart)
+          .single();
+
+        if (exactError && exactError.code !== 'PGRST116') {
+          throw exactError;
+        }
+        week = exactWeek;
       }
 
       // Create week if it doesn't exist
@@ -130,8 +141,9 @@ export default function MealsPage() {
 
       if (mealsError) throw mealsError;
       setMeals(mealsData || []);
-    } catch (err) {
-      console.error('Error fetching day data:', err);
+    } catch (err: unknown) {
+      const supaError = err as { message?: string; code?: string; details?: string; hint?: string };
+      console.error('Error fetching day data:', supaError.message, supaError.code, supaError.details, supaError.hint);
     } finally {
       setLoading(false);
     }

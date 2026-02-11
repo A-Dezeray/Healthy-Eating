@@ -10,24 +10,21 @@ import {
 } from 'date-fns';
 
 /**
- * Gets the start of the current week (Wednesday)
+ * Gets the start of the current week (Sunday)
  */
 export function getWeekStart(date: Date = new Date()): Date {
-  // In date-fns, weeks start on Sunday (0), Monday (1), ..., Saturday (6)
-  // Wednesday is 3
-  return startOfDay(startOfWeek(date, { weekStartsOn: 3 }));
+  return startOfDay(startOfWeek(date, { weekStartsOn: 0 }));
 }
 
 /**
- * Gets the end of the current week (Tuesday)
+ * Gets the end of the current week (Saturday)
  */
 export function getWeekEnd(date: Date = new Date()): Date {
-  // End of week when starting on Wednesday
-  return startOfDay(endOfWeek(date, { weekStartsOn: 3 }));
+  return startOfDay(endOfWeek(date, { weekStartsOn: 0 }));
 }
 
 /**
- * Gets all days in a week (Wed-Tue) as an array of Date objects
+ * Gets all days in a week (Sun-Sat) as an array of Date objects
  */
 export function getDaysInWeek(weekStart: Date): Date[] {
   const weekEnd = addDays(weekStart, 6); // 7 days total

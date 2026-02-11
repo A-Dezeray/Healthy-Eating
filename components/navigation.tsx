@@ -69,6 +69,7 @@ export function Navigation() {
     { href: '/recipes', label: 'Recipes' },
     { href: '/foods', label: 'Foods' },
     { href: '/weight', label: 'Weight' },
+    { href: '/dietitian-notes', label: 'Notes' },
   ];
 
   return (

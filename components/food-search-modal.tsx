@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 interface FoodSearchResult {
-  fdcId: number;
+  id: string;
   description: string;
   calories: number;
   protein: number;
@@ -13,6 +13,7 @@ interface FoodSearchResult {
   water: number;
   servingSize: number;
   servingSizeUnit: string;
+  source: 'USDA';
 }
 
 interface FoodSearchModalProps {
@@ -63,8 +64,8 @@ export function FoodSearchModal({ isOpen, onClose, onSelect }: FoodSearchModalPr
 
   const handleSelectFood = (food: FoodSearchResult) => {
     const servingText = food.servingSize
-      ? `per ${food.servingSize}${food.servingSizeUnit}`
-      : 'per 100g';
+      ? `per ${food.servingSize} ${food.servingSizeUnit}`
+      : 'per 1 cup';
 
     onSelect({
       name: food.description,
@@ -103,7 +104,7 @@ export function FoodSearchModal({ isOpen, onClose, onSelect }: FoodSearchModalPr
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
               placeholder="Search for food (e.g., chicken breast, banana)"
               className="flex-1 rounded-md border border-zinc-300 px-4 py-2 text-sm"
             />
@@ -131,15 +132,20 @@ export function FoodSearchModal({ isOpen, onClose, onSelect }: FoodSearchModalPr
           <div className="space-y-2">
             {results.map((food) => (
               <button
-                key={food.fdcId}
+                key={food.id}
                 onClick={() => handleSelectFood(food)}
                 className="w-full text-left rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 transition-colors"
               >
-                <p className="font-medium text-zinc-900">{food.description}</p>
+                <div className="flex items-start justify-between">
+                  <p className="font-medium text-zinc-900">{food.description}</p>
+                  <span className="ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700">
+                    USDA
+                  </span>
+                </div>
                 <p className="text-sm text-zinc-600 mt-1">
                   {food.servingSize > 0
-                    ? `Per ${food.servingSize}${food.servingSizeUnit}`
-                    : 'Per 100g'}
+                    ? `Per ${food.servingSize} ${food.servingSizeUnit}`
+                    : 'Per 1 cup'}
                 </p>
                 <div className="mt-2 flex gap-4 text-xs text-zinc-500">
                   <span>{Math.round(food.calories)} cal</span>

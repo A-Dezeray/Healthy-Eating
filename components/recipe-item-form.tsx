@@ -6,9 +6,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { FoodSearchModal } from './food-search-modal';
 
+const servingUnits = ['cup', 'tbsp', 'tsp'] as const;
+type ServingUnit = typeof servingUnits[number];
+
+const unitToCups: Record<ServingUnit, number> = {
+  cup: 1,
+  tbsp: 1 / 16,
+  tsp: 1 / 48,
+};
+
 const recipeItemSchema = z.object({
   food_name: z.string().min(1, 'Food name is required'),
-  amount: z.string().min(1, 'Amount is required'),
+  serving: z.number().min(0.25, 'Serving must be at least 0.25'),
+  unit: z.enum(servingUnits),
   calories: z.number().min(0, 'Calories must be positive'),
   protein: z.number().min(0).optional(),
   carbs: z.number().min(0).optional(),
@@ -19,23 +29,56 @@ const recipeItemSchema = z.object({
 
 type RecipeItemFormData = z.infer<typeof recipeItemSchema>;
 
+interface BaseNutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  water: number;
+}
+
 interface RecipeItemFormProps {
   onSave: (data: RecipeItemFormData) => void;
   onCancel: () => void;
 }
 
+const formatAmount = (val: number, unit: ServingUnit): string => {
+  if (unit === 'tbsp') {
+    return val === 1 ? '1 tbsp' : `${val} tbsp`;
+  }
+  if (unit === 'tsp') {
+    return val === 1 ? '1 tsp' : `${val} tsp`;
+  }
+  if (val === 0.25) return '1/4 cup';
+  if (val === 0.5) return '1/2 cup';
+  if (val === 0.75) return '3/4 cup';
+  if (val === 1) return '1 cup';
+  if (val === 1.25) return '1 1/4 cups';
+  if (val === 1.5) return '1 1/2 cups';
+  if (val === 1.75) return '1 3/4 cups';
+  if (val === 2) return '2 cups';
+  if (val === 2.5) return '2 1/2 cups';
+  if (val === 3) return '3 cups';
+  return `${val} cups`;
+};
+
 export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
   const [loading, setLoading] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [baseNutrition, setBaseNutrition] = useState<BaseNutrition | null>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<RecipeItemFormData>({
     resolver: zodResolver(recipeItemSchema),
     defaultValues: {
+      serving: 1,
+      unit: 'cup' as ServingUnit,
       calories: 0,
       protein: 0,
       carbs: 0,
@@ -44,6 +87,15 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
       water: 0,
     },
   });
+
+  const scaleNutrition = (base: BaseNutrition, cups: number) => {
+    setValue('calories', Math.round(base.calories * cups));
+    setValue('protein', Math.round(base.protein * cups * 10) / 10);
+    setValue('carbs', Math.round(base.carbs * cups * 10) / 10);
+    setValue('fat', Math.round(base.fat * cups * 10) / 10);
+    setValue('fiber', Math.round(base.fiber * cups * 10) / 10);
+    setValue('water', Math.round(base.water * cups * 10) / 10);
+  };
 
   const handleFoodSelect = (food: {
     name: string;
@@ -55,19 +107,46 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
     water: number;
     defaultAmount: string;
   }) => {
+    const base: BaseNutrition = {
+      calories: food.calories,
+      protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
+      fiber: food.fiber,
+      water: food.water,
+    };
+    setBaseNutrition(base);
     setValue('food_name', food.name);
-    setValue('amount', food.defaultAmount);
-    setValue('calories', food.calories);
-    setValue('protein', food.protein);
-    setValue('carbs', food.carbs);
-    setValue('fat', food.fat);
-    setValue('fiber', food.fiber);
-    setValue('water', food.water);
+    setValue('serving', 1);
+    scaleNutrition(base, 1);
+  };
+
+  const rescaleFromUnit = (servingVal: number, unit: ServingUnit) => {
+    if (!baseNutrition) return;
+    const cups = servingVal * unitToCups[unit];
+    scaleNutrition(baseNutrition, cups);
+  };
+
+  const handleServingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val) && val > 0) {
+      rescaleFromUnit(val, watch('unit'));
+    }
+  };
+
+  const handleUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newUnit = e.target.value as ServingUnit;
+    setValue('unit', newUnit);
+    const serving = watch('serving');
+    if (!isNaN(serving) && serving > 0) {
+      rescaleFromUnit(serving, newUnit);
+    }
   };
 
   const onSubmit = async (data: RecipeItemFormData) => {
     setLoading(true);
-    onSave(data);
+    // Pass data with amount formatted as cups
+    onSave({ ...data, amount: formatAmount(data.serving, data.unit) } as any);
     setLoading(false);
   };
 
@@ -106,18 +185,37 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
         </div>
 
         <div className="col-span-2">
-          <label htmlFor="amount" className="block text-sm font-medium text-zinc-900">
-            Amount
+          <label htmlFor="serving" className="block text-sm font-medium text-zinc-900">
+            Serving
           </label>
-          <input
-            id="amount"
-            type="text"
-            {...register('amount')}
-            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-            placeholder="e.g., 4 oz, 1 cup"
-          />
-          {errors.amount && (
-            <p className="mt-1 text-sm text-red-600">{errors.amount.message}</p>
+          <div className="mt-1 flex gap-2">
+            <input
+              id="serving"
+              type="number"
+              step="0.25"
+              min="0.25"
+              {...register('serving', { valueAsNumber: true })}
+              onChange={(e) => {
+                register('serving', { valueAsNumber: true }).onChange(e);
+                handleServingChange(e);
+              }}
+              className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            />
+            <select
+              {...register('unit')}
+              onChange={(e) => {
+                register('unit').onChange(e);
+                handleUnitChange(e);
+              }}
+              className="rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            >
+              <option value="cup">Cups</option>
+              <option value="tbsp">Tbsp</option>
+              <option value="tsp">Tsp</option>
+            </select>
+          </div>
+          {errors.serving && (
+            <p className="mt-1 text-sm text-red-600">{errors.serving.message}</p>
           )}
         </div>
 
