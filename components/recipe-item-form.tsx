@@ -38,8 +38,19 @@ interface BaseNutrition {
   water: number;
 }
 
+interface RecipeItemSaveData {
+  food_name: string;
+  amount: string;
+  calories: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  fiber?: number;
+  water?: number;
+}
+
 interface RecipeItemFormProps {
-  onSave: (data: RecipeItemFormData) => void;
+  onSave: (data: RecipeItemSaveData) => void;
   onCancel: () => void;
 }
 
@@ -145,8 +156,16 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
 
   const onSubmit = async (data: RecipeItemFormData) => {
     setLoading(true);
-    // Pass data with amount formatted as cups
-    onSave({ ...data, amount: formatAmount(data.serving, data.unit) } as any);
+    onSave({
+      food_name: data.food_name,
+      amount: formatAmount(data.serving, data.unit),
+      calories: data.calories,
+      protein: data.protein,
+      carbs: data.carbs,
+      fat: data.fat,
+      fiber: data.fiber,
+      water: data.water,
+    });
     setLoading(false);
   };
 
