@@ -5,6 +5,27 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { UserRole, DietitianNote } from '@/lib/types';
 
+function getNoteDraftKey(userId: string) {
+  return `note-draft-${userId}`;
+}
+
+function getEditDraftKey(userId: string, noteId: string) {
+  return `note-edit-draft-${userId}-${noteId}`;
+}
+
+function getReplyDraftKey(userId: string, noteId: string) {
+  return `note-reply-draft-${userId}-${noteId}`;
+}
+
+function loadNoteDraft(userId: string | undefined) {
+  if (!userId) return null;
+  try {
+    const saved = localStorage.getItem(getNoteDraftKey(userId));
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return null;
+}
+
 export default function DietitianNotesPage() {
   const { user } = useAuth();
   const supabase = createClient();
@@ -14,10 +35,11 @@ export default function DietitianNotesPage() {
   const [profiles, setProfiles] = useState<Map<string, { full_name: string; role: UserRole }>>(new Map());
   const [loading, setLoading] = useState(true);
 
-  // New note form
-  const [showNoteForm, setShowNoteForm] = useState(false);
-  const [noteTitle, setNoteTitle] = useState('');
-  const [noteContent, setNoteContent] = useState('');
+  // New note form — restore draft via lazy initializers
+  const noteDraft = loadNoteDraft(user?.id);
+  const [showNoteForm, setShowNoteForm] = useState(() => !!(noteDraft?.title || noteDraft?.content));
+  const [noteTitle, setNoteTitle] = useState(() => noteDraft?.title || '');
+  const [noteContent, setNoteContent] = useState(() => noteDraft?.content || '');
   const [saving, setSaving] = useState(false);
 
   // Edit note
@@ -29,11 +51,29 @@ export default function DietitianNotesPage() {
   const [replyingToNoteId, setReplyingToNoteId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
 
+  // Save new-note draft on changes
   useEffect(() => {
-    if (user) {
-      fetchData();
+    if (!user?.id) return;
+    if (!showNoteForm || (!noteTitle && !noteContent)) {
+      localStorage.removeItem(getNoteDraftKey(user.id));
+      return;
     }
-  }, [user]);
+    localStorage.setItem(getNoteDraftKey(user.id), JSON.stringify({ title: noteTitle, content: noteContent }));
+  }, [user?.id, showNoteForm, noteTitle, noteContent]);
+
+  // Save edit draft on changes
+  useEffect(() => {
+    if (!user?.id || !editingNoteId) return;
+    if (!editTitle && !editContent) return;
+    localStorage.setItem(getEditDraftKey(user.id, editingNoteId), JSON.stringify({ title: editTitle, content: editContent }));
+  }, [user?.id, editingNoteId, editTitle, editContent]);
+
+  // Save reply draft on changes
+  useEffect(() => {
+    if (!user?.id || !replyingToNoteId) return;
+    if (!replyContent) return;
+    localStorage.setItem(getReplyDraftKey(user.id, replyingToNoteId), JSON.stringify({ content: replyContent }));
+  }, [user?.id, replyingToNoteId, replyContent]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -69,6 +109,12 @@ export default function DietitianNotesPage() {
     if (data) setNotes(data);
   };
 
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
+
   const getAuthorName = (authorId: string) => profiles.get(authorId)?.full_name || 'Unknown';
   const getAuthorRole = (authorId: string) => profiles.get(authorId)?.role || 'client';
 
@@ -90,6 +136,7 @@ export default function DietitianNotesPage() {
       content: noteContent.trim(),
     });
     if (!error) {
+      if (user?.id) localStorage.removeItem(getNoteDraftKey(user.id));
       setNoteTitle('');
       setNoteContent('');
       setShowNoteForm(false);
@@ -106,6 +153,7 @@ export default function DietitianNotesPage() {
       .update({ title: editTitle.trim(), content: editContent.trim() })
       .eq('id', editingNoteId);
     if (!error) {
+      if (user?.id) localStorage.removeItem(getEditDraftKey(user.id, editingNoteId));
       setEditingNoteId(null);
       await fetchNotes();
     }
@@ -127,6 +175,7 @@ export default function DietitianNotesPage() {
       content: replyContent.trim(),
     });
     if (!error) {
+      if (user?.id) localStorage.removeItem(getReplyDraftKey(user.id, noteId));
       setReplyContent('');
       setReplyingToNoteId(null);
       await fetchNotes();
@@ -138,6 +187,55 @@ export default function DietitianNotesPage() {
     if (!confirm('Delete this reply?')) return;
     const { error } = await supabase.from('note_replies').delete().eq('id', replyId);
     if (!error) await fetchNotes();
+  };
+
+  const startEditing = (noteId: string, title: string, content: string) => {
+    setEditingNoteId(noteId);
+    // Restore edit draft if exists
+    if (user?.id) {
+      try {
+        const saved = localStorage.getItem(getEditDraftKey(user.id, noteId));
+        if (saved) {
+          const draft = JSON.parse(saved);
+          setEditTitle(draft.title || title);
+          setEditContent(draft.content || content);
+          return;
+        }
+      } catch {}
+    }
+    setEditTitle(title);
+    setEditContent(content);
+  };
+
+  const cancelEditing = () => {
+    if (user?.id && editingNoteId) {
+      localStorage.removeItem(getEditDraftKey(user.id, editingNoteId));
+    }
+    setEditingNoteId(null);
+  };
+
+  const startReplying = (noteId: string) => {
+    setReplyingToNoteId(noteId);
+    // Restore reply draft if exists
+    if (user?.id) {
+      try {
+        const saved = localStorage.getItem(getReplyDraftKey(user.id, noteId));
+        if (saved) {
+          const draft = JSON.parse(saved);
+          setReplyContent(draft.content || '');
+          return;
+        }
+      } catch {}
+    }
+    setReplyContent('');
+  };
+
+  const cancelReplying = () => {
+    if (user?.id && replyingToNoteId) {
+      localStorage.removeItem(getReplyDraftKey(user.id, replyingToNoteId));
+    }
+    setReplyingToNoteId(null);
+    setReplyContent('');
   };
 
   if (loading) {
@@ -189,6 +287,7 @@ export default function DietitianNotesPage() {
                 </button>
                 <button
                   onClick={() => {
+                    if (user?.id) localStorage.removeItem(getNoteDraftKey(user.id));
                     setShowNoteForm(false);
                     setNoteTitle('');
                     setNoteContent('');
@@ -233,11 +332,7 @@ export default function DietitianNotesPage() {
                 {userRole === 'dietitian' && note.author_id === user?.id && editingNoteId !== note.id && (
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
-                        setEditingNoteId(note.id);
-                        setEditTitle(note.title);
-                        setEditContent(note.content);
-                      }}
+                      onClick={() => startEditing(note.id, note.title, note.content)}
                       className="text-sm text-zinc-500 hover:text-zinc-900"
                     >
                       Edit
@@ -276,7 +371,7 @@ export default function DietitianNotesPage() {
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                     <button
-                      onClick={() => setEditingNoteId(null)}
+                      onClick={cancelEditing}
                       className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
                     >
                       Cancel
@@ -347,10 +442,7 @@ export default function DietitianNotesPage() {
                       {saving ? 'Sending...' : 'Reply'}
                     </button>
                     <button
-                      onClick={() => {
-                        setReplyingToNoteId(null);
-                        setReplyContent('');
-                      }}
+                      onClick={cancelReplying}
                       className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
                     >
                       Cancel
@@ -359,7 +451,7 @@ export default function DietitianNotesPage() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setReplyingToNoteId(note.id)}
+                  onClick={() => startReplying(note.id)}
                   className="text-sm font-medium text-pink-600 hover:text-pink-700"
                 >
                   Reply

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,10 +8,10 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { FoodSearchModal } from './food-search-modal';
 
-const servingUnits = ['cup', 'tbsp', 'tsp'] as const;
+const servingUnits = ['cup', 'tbsp', 'tsp', 'each', 'package'] as const;
 type ServingUnit = typeof servingUnits[number];
 
-const unitToCups: Record<ServingUnit, number> = {
+const unitToCups: Record<string, number> = {
   cup: 1,
   tbsp: 1 / 16,
   tsp: 1 / 48,
@@ -47,14 +47,33 @@ interface MealItemFormProps {
   onCancel: () => void;
 }
 
+function loadMealItemDraft(userId: string | undefined, mealId: string) {
+  if (!userId) return null;
+  try {
+    const saved = localStorage.getItem(`meal-item-draft-${userId}-${mealId}`);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return null;
+}
+
 export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
-  // Base nutrition = values per 1 cup
-  const [baseNutrition, setBaseNutrition] = useState<BaseNutrition | null>(null);
   const supabase = createClient();
+
+  const draft = loadMealItemDraft(user?.id, mealId);
+  const draftKey = user?.id ? `meal-item-draft-${user.id}-${mealId}` : null;
+
+  // Base nutrition = values per 1 cup
+  const [baseNutrition, setBaseNutrition] = useState<BaseNutrition | null>(
+    () => draft?.baseNutrition || null
+  );
+
+  const clearDraft = useCallback(() => {
+    if (draftKey) localStorage.removeItem(draftKey);
+  }, [draftKey]);
 
   const {
     register,
@@ -65,16 +84,30 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
   } = useForm<MealItemFormData>({
     resolver: zodResolver(mealItemSchema),
     defaultValues: {
-      serving: 1,
-      unit: 'cup' as ServingUnit,
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-      fiber: 0,
-      water: 0,
+      food_name: draft?.food_name || '',
+      serving: draft?.serving || 1,
+      unit: (draft?.unit as ServingUnit) || 'cup',
+      calories: draft?.calories || 0,
+      protein: draft?.protein || 0,
+      carbs: draft?.carbs || 0,
+      fat: draft?.fat || 0,
+      fiber: draft?.fiber || 0,
+      water: draft?.water || 0,
+      notes: draft?.notes || '',
     },
   });
+
+  // Save draft on changes
+  const formValues = watch();
+  useEffect(() => {
+    if (!draftKey) return;
+    if (!formValues.food_name && formValues.calories === 0) return;
+    const draftData = {
+      ...formValues,
+      baseNutrition,
+    };
+    localStorage.setItem(draftKey, JSON.stringify(draftData));
+  }, [draftKey, formValues.food_name, formValues.serving, formValues.unit, formValues.calories, formValues.protein, formValues.carbs, formValues.fat, formValues.fiber, formValues.water, formValues.notes, baseNutrition]);
 
   const scaleNutrition = (base: BaseNutrition, cups: number) => {
     setValue('calories', Math.round(base.calories * cups));
@@ -112,6 +145,7 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
 
   const rescaleFromUnit = (servingVal: number, unit: ServingUnit) => {
     if (!baseNutrition) return;
+    if (unit === 'each' || unit === 'package') return;
     const cups = servingVal * unitToCups[unit];
     scaleNutrition(baseNutrition, cups);
   };
@@ -133,6 +167,12 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
   };
 
   const formatAmount = (val: number, unit: ServingUnit): string => {
+    if (unit === 'each') {
+      return `${val}`;
+    }
+    if (unit === 'package') {
+      return val === 1 ? '1 package' : `${val} packages`;
+    }
     if (unit === 'tbsp') {
       return val === 1 ? '1 tbsp' : `${val} tbsp`;
     }
@@ -218,6 +258,7 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
         }
       }
 
+      clearDraft();
       onSave();
     } catch (err: unknown) {
       console.error('Meal item save error:', err);
@@ -301,6 +342,8 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
               <option value="cup">Cups</option>
               <option value="tbsp">Tbsp</option>
               <option value="tsp">Tsp</option>
+              <option value="each">Each</option>
+              <option value="package">Package</option>
             </select>
           </div>
           {errors.serving && (
@@ -412,7 +455,7 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
         </button>
         <button
           type="button"
-          onClick={onCancel}
+          onClick={() => { clearDraft(); onCancel(); }}
           className="flex-1 rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
         >
           Cancel

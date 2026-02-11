@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -43,14 +43,22 @@ export default function EditRecipePage() {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
+  const draftKey = user?.id && recipeId ? `recipe-edit-draft-${user.id}-${recipeId}` : null;
+
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
     reset,
   } = useForm<RecipeFormData>({
     resolver: zodResolver(recipeSchema),
   });
+
+  const clearDraft = useCallback(() => {
+    if (draftKey) localStorage.removeItem(draftKey);
+  }, [draftKey]);
 
   useEffect(() => {
     if (recipeId) {
@@ -77,18 +85,52 @@ export default function EditRecipePage() {
       if (itemsError) throw itemsError;
 
       setRecipe(recipeData);
-      setIngredients(itemsData || []);
-      reset({
-        name: recipeData.name,
-        servings: recipeData.servings,
-        notes: recipeData.notes || '',
-      });
+
+      // Restore draft if exists, otherwise use DB data
+      let draftRestored = false;
+      if (draftKey) {
+        try {
+          const saved = localStorage.getItem(draftKey);
+          if (saved) {
+            const draft = JSON.parse(saved);
+            if (draft.ingredients) setIngredients(draft.ingredients);
+            reset({
+              name: draft.name || recipeData.name,
+              servings: draft.servings || recipeData.servings,
+              notes: draft.notes ?? recipeData.notes ?? '',
+            });
+            draftRestored = true;
+          }
+        } catch {}
+      }
+
+      if (!draftRestored) {
+        setIngredients(itemsData || []);
+        reset({
+          name: recipeData.name,
+          servings: recipeData.servings,
+          notes: recipeData.notes || '',
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load recipe');
     } finally {
       setLoading(false);
     }
   };
+
+  // Save draft on changes
+  const formValues = watch();
+  useEffect(() => {
+    if (!draftKey || loading) return;
+    const draft = {
+      ingredients,
+      name: formValues.name,
+      servings: formValues.servings,
+      notes: formValues.notes,
+    };
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+  }, [draftKey, loading, ingredients, formValues.name, formValues.servings, formValues.notes]);
 
   const handleAddIngredient = (ingredient: RecipeIngredient) => {
     setIngredients([...ingredients, ingredient]);
@@ -188,6 +230,7 @@ export default function EditRecipePage() {
 
       if (itemsError) throw itemsError;
 
+      clearDraft();
       router.push('/recipes');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update recipe');
@@ -366,7 +409,7 @@ export default function EditRecipePage() {
           </button>
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => { clearDraft(); router.back(); }}
             className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
           >
             Cancel

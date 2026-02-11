@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,9 +37,13 @@ export default function NewRecipePage() {
   const [error, setError] = useState<string | null>(null);
   const supabase = createClient();
 
+  const draftKey = user?.id ? `recipe-draft-${user.id}` : null;
+
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<RecipeFormData>({
     resolver: zodResolver(recipeSchema),
@@ -47,6 +51,38 @@ export default function NewRecipePage() {
       servings: 1,
     },
   });
+
+  const clearDraft = useCallback(() => {
+    if (draftKey) localStorage.removeItem(draftKey);
+  }, [draftKey]);
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (!draftKey) return;
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const draft = JSON.parse(saved);
+        if (draft.ingredients) setIngredients(draft.ingredients);
+        if (draft.name) setValue('name', draft.name);
+        if (draft.servings) setValue('servings', draft.servings);
+        if (draft.notes) setValue('notes', draft.notes);
+      }
+    } catch {}
+  }, [draftKey]);
+
+  // Save draft on changes
+  const formValues = watch();
+  useEffect(() => {
+    if (!draftKey) return;
+    const draft = {
+      ingredients,
+      name: formValues.name,
+      servings: formValues.servings,
+      notes: formValues.notes,
+    };
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+  }, [draftKey, ingredients, formValues.name, formValues.servings, formValues.notes]);
 
   const handleAddIngredient = (ingredient: RecipeIngredient) => {
     setIngredients([...ingredients, ingredient]);
@@ -123,6 +159,7 @@ export default function NewRecipePage() {
 
       if (itemsError) throw itemsError;
 
+      clearDraft();
       router.push('/recipes');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create recipe');
@@ -285,7 +322,7 @@ export default function NewRecipePage() {
           </button>
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => { clearDraft(); router.back(); }}
             className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
           >
             Cancel

@@ -1,15 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { createClient } from '@/lib/supabase/client';
 import { FoodSearchModal } from './food-search-modal';
 
-const servingUnits = ['cup', 'tbsp', 'tsp'] as const;
+const servingUnits = ['cup', 'tbsp', 'tsp', 'each', 'package'] as const;
 type ServingUnit = typeof servingUnits[number];
 
-const unitToCups: Record<ServingUnit, number> = {
+const unitToCups: Record<string, number> = {
   cup: 1,
   tbsp: 1 / 16,
   tsp: 1 / 48,
@@ -55,6 +57,12 @@ interface RecipeItemFormProps {
 }
 
 const formatAmount = (val: number, unit: ServingUnit): string => {
+  if (unit === 'each') {
+    return `${val}`;
+  }
+  if (unit === 'package') {
+    return val === 1 ? '1 package' : `${val} packages`;
+  }
   if (unit === 'tbsp') {
     return val === 1 ? '1 tbsp' : `${val} tbsp`;
   }
@@ -74,10 +82,60 @@ const formatAmount = (val: number, unit: ServingUnit): string => {
   return `${val} cups`;
 };
 
+interface UserFood {
+  id: string;
+  name: string;
+  calories_per_serving: number;
+  protein_per_serving: number;
+  carbs_per_serving: number;
+  fat_per_serving: number;
+  fiber_per_serving: number;
+  water_per_serving: number;
+}
+
 export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
+  const { user } = useAuth();
+  const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [baseNutrition, setBaseNutrition] = useState<BaseNutrition | null>(null);
+  const [myFoods, setMyFoods] = useState<UserFood[]>([]);
+  const [showMyFoods, setShowMyFoods] = useState(false);
+  const [myFoodsQuery, setMyFoodsQuery] = useState('');
+
+  useEffect(() => {
+    if (user?.id) {
+      supabase
+        .from('foods')
+        .select('id, name, calories_per_serving, protein_per_serving, carbs_per_serving, fat_per_serving, fiber_per_serving, water_per_serving')
+        .eq('user_id', user.id)
+        .order('name')
+        .then(({ data }) => {
+          if (data) setMyFoods(data);
+        });
+    }
+  }, [user?.id]);
+
+  const handleMyFoodSelect = (food: UserFood) => {
+    const base: BaseNutrition = {
+      calories: food.calories_per_serving,
+      protein: food.protein_per_serving || 0,
+      carbs: food.carbs_per_serving || 0,
+      fat: food.fat_per_serving || 0,
+      fiber: food.fiber_per_serving || 0,
+      water: food.water_per_serving || 0,
+    };
+    setBaseNutrition(base);
+    setValue('food_name', food.name);
+    setValue('serving', 1);
+    scaleNutrition(base, 1);
+    setShowMyFoods(false);
+    setMyFoodsQuery('');
+  };
+
+  const filteredMyFoods = myFoods.filter(f =>
+    f.name.toLowerCase().includes(myFoodsQuery.toLowerCase())
+  );
 
   const {
     register,
@@ -134,6 +192,7 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
 
   const rescaleFromUnit = (servingVal: number, unit: ServingUnit) => {
     if (!baseNutrition) return;
+    if (unit === 'each' || unit === 'package') return;
     const cups = servingVal * unitToCups[unit];
     scaleNutrition(baseNutrition, cups);
   };
@@ -178,13 +237,55 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
       />
 
       <div className="space-y-3 rounded-lg border border-zinc-300 bg-zinc-50 p-4">
-        <button
-          type="button"
-          onClick={() => setSearchModalOpen(true)}
-          className="w-full rounded-md border-2 border-dashed border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
-        >
-          🔍 Search Food Database
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSearchModalOpen(true)}
+            className="flex-1 rounded-md border-2 border-dashed border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
+          >
+            Search USDA
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowMyFoods(!showMyFoods)}
+            className="flex-1 rounded-md border-2 border-dashed border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
+          >
+            My Foods
+          </button>
+        </div>
+
+        {showMyFoods && (
+          <div className="rounded-md border border-zinc-200 bg-white p-3 space-y-2">
+            <input
+              type="text"
+              placeholder="Filter my foods..."
+              value={myFoodsQuery}
+              onChange={(e) => setMyFoodsQuery(e.target.value)}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            />
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {filteredMyFoods.length === 0 ? (
+                <p className="text-sm text-zinc-500 text-center py-2">
+                  {myFoods.length === 0 ? 'No saved foods yet' : 'No matches'}
+                </p>
+              ) : (
+                filteredMyFoods.map((food) => (
+                  <button
+                    key={food.id}
+                    type="button"
+                    onClick={() => handleMyFoodSelect(food)}
+                    className="w-full text-left rounded-md px-3 py-2 text-sm hover:bg-zinc-50 transition-colors"
+                  >
+                    <p className="font-medium">{food.name}</p>
+                    <p className="text-xs text-zinc-500">
+                      {food.calories_per_serving} cal | P: {food.protein_per_serving || 0}g | C: {food.carbs_per_serving || 0}g | F: {food.fat_per_serving || 0}g
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
@@ -231,6 +332,8 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
               <option value="cup">Cups</option>
               <option value="tbsp">Tbsp</option>
               <option value="tsp">Tsp</option>
+              <option value="each">Each</option>
+              <option value="package">Package</option>
             </select>
           </div>
           {errors.serving && (

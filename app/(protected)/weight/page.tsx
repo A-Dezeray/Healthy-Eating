@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { formatDateForDB, formatDateFull } from '@/lib/utils/date';
@@ -28,6 +28,12 @@ export default function WeightPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [showAllLogs, setShowAllLogs] = useState(false);
   const supabase = createClient();
+
+  const draftKey = user?.id ? `weight-draft-${user.id}-${selectedDate}` : null;
+
+  const clearDraft = useCallback(() => {
+    if (draftKey) localStorage.removeItem(draftKey);
+  }, [draftKey]);
 
   useEffect(() => {
     if (user) {
@@ -72,13 +78,38 @@ export default function WeightPage() {
         setNotes(data.notes || '');
       } else {
         setTodaysWeight(null);
-        setWeight('');
-        setNotes('');
+        // Restore draft if exists
+        let draftRestored = false;
+        if (draftKey) {
+          try {
+            const saved = localStorage.getItem(draftKey);
+            if (saved) {
+              const draft = JSON.parse(saved);
+              if (draft.weight) setWeight(draft.weight);
+              if (draft.notes) setNotes(draft.notes);
+              draftRestored = true;
+            }
+          } catch {}
+        }
+        if (!draftRestored) {
+          setWeight('');
+          setNotes('');
+        }
       }
     } catch (err) {
       console.error('Error fetching today\'s weight:', err);
     }
   };
+
+  // Save draft on changes
+  useEffect(() => {
+    if (!draftKey || loading) return;
+    // Only save draft if user has typed something and there's no existing DB entry
+    if (!weight && !notes) return;
+    if (todaysWeight) return; // Don't draft over DB data
+    const draft = { weight, notes };
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+  }, [draftKey, loading, weight, notes, todaysWeight]);
 
   const handleSave = async () => {
     if (!weight) return;
@@ -98,6 +129,7 @@ export default function WeightPage() {
 
       if (error) throw error;
 
+      clearDraft();
       await fetchWeightLogs();
       await fetchTodaysWeight();
     } catch (err) {
