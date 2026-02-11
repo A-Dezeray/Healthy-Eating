@@ -288,6 +288,13 @@ export default function EditRecipePage() {
             </button>
           </div>
 
+          {adding && (
+            <RecipeItemForm
+              onSave={handleAddIngredient}
+              onCancel={() => setAdding(false)}
+            />
+          )}
+
           {ingredients.length === 0 && !adding && (
             <p className="text-sm text-zinc-500">No ingredients added yet</p>
           )}
@@ -315,13 +322,6 @@ export default function EditRecipePage() {
               </div>
             ))}
           </div>
-
-          {adding && (
-            <RecipeItemForm
-              onSave={handleAddIngredient}
-              onCancel={() => setAdding(false)}
-            />
-          )}
 
           {ingredients.length > 0 && (
             <div className="border-t border-zinc-200 pt-4">

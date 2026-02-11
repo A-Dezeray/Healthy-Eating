@@ -117,6 +117,7 @@ export default function RecipesPage() {
                       • {recipe.recipe_items.length} ingredient{recipe.recipe_items.length !== 1 ? 's' : ''}
                     </span>
                   )}
+                  <span className="ml-2">• {perServing.calories} cal/serving</span>
                 </div>
 
                 <div className="border-t border-zinc-200 pt-3">
