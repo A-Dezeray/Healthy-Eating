@@ -99,6 +99,7 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
   const [loading, setLoading] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [baseNutrition, setBaseNutrition] = useState<BaseNutrition | null>(null);
+  const [servingInfo, setServingInfo] = useState<string | null>(null);
   const [myFoods, setMyFoods] = useState<UserFood[]>([]);
   const [showMyFoods, setShowMyFoods] = useState(false);
   const [myFoodsQuery, setMyFoodsQuery] = useState('');
@@ -185,6 +186,7 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
       water: food.water,
     };
     setBaseNutrition(base);
+    setServingInfo(food.defaultAmount);
     setValue('food_name', food.name);
     setValue('serving', 1);
     scaleNutrition(base, 1);
@@ -301,6 +303,9 @@ export function RecipeItemForm({ onSave, onCancel }: RecipeItemFormProps) {
           />
           {errors.food_name && (
             <p className="mt-1 text-sm text-red-600">{errors.food_name.message}</p>
+          )}
+          {servingInfo && (
+            <p className="mt-1 text-xs text-green-700">USDA nutrition {servingInfo}</p>
           )}
         </div>
 

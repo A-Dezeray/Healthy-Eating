@@ -40,6 +40,7 @@ export interface DailyLog {
   total_fiber: number;
   total_protein: number;
   water_intake: number;
+  is_locked: boolean;
   created_at: string;
   updated_at: string;
 }

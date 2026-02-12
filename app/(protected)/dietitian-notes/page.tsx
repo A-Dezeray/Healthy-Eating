@@ -250,64 +250,62 @@ export default function DietitianNotesPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-semibold">Dietitian Notes</h1>
+        <h1 className="text-3xl font-semibold">Notes</h1>
         <p className="mt-1 text-sm text-zinc-600">
           {userRole === 'dietitian'
             ? 'Leave notes and feedback for your client'
-            : 'Notes and feedback from Emily'}
+            : 'Notes and updates between you and your dietitian'}
         </p>
       </div>
 
-      {/* New Note - Dietitian only */}
-      {userRole === 'dietitian' && (
-        <div className="rounded-lg border border-zinc-200 bg-white p-6">
-          {showNoteForm ? (
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Note title"
-                value={noteTitle}
-                onChange={(e) => setNoteTitle(e.target.value)}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-              />
-              <textarea
-                placeholder="Write your note..."
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                rows={4}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={handleCreateNote}
-                  disabled={saving || !noteTitle.trim() || !noteContent.trim()}
-                  className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? 'Saving...' : 'Post Note'}
-                </button>
-                <button
-                  onClick={() => {
-                    if (user?.id) localStorage.removeItem(getNoteDraftKey(user.id));
-                    setShowNoteForm(false);
-                    setNoteTitle('');
-                    setNoteContent('');
-                  }}
-                  className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-                >
-                  Cancel
-                </button>
-              </div>
+      {/* New Note - Available to all users */}
+      <div className="rounded-lg border border-zinc-200 bg-white p-6">
+        {showNoteForm ? (
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Note title"
+              value={noteTitle}
+              onChange={(e) => setNoteTitle(e.target.value)}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            />
+            <textarea
+              placeholder="Write your note..."
+              value={noteContent}
+              onChange={(e) => setNoteContent(e.target.value)}
+              rows={4}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateNote}
+                disabled={saving || !noteTitle.trim() || !noteContent.trim()}
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving...' : 'Post Note'}
+              </button>
+              <button
+                onClick={() => {
+                  if (user?.id) localStorage.removeItem(getNoteDraftKey(user.id));
+                  setShowNoteForm(false);
+                  setNoteTitle('');
+                  setNoteContent('');
+                }}
+                className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                Cancel
+              </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setShowNoteForm(true)}
-              className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition-colors"
-            >
-              New Note
-            </button>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowNoteForm(true)}
+            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 transition-colors"
+          >
+            New Note
+          </button>
+        )}
+      </div>
 
       {/* Notes Feed */}
       {notes.length === 0 ? (
@@ -316,20 +314,36 @@ export default function DietitianNotesPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {notes.map((note) => (
-            <div key={note.id} className="rounded-lg border border-zinc-200 bg-white p-6 space-y-4">
+          {notes.map((note) => {
+            const noteAuthorRole = getAuthorRole(note.author_id);
+            const isDietitianNote = noteAuthorRole === 'dietitian';
+            return (
+            <div
+              key={note.id}
+              className={`rounded-lg border bg-white p-6 space-y-4 border-l-4 ${
+                isDietitianNote
+                  ? 'border-l-green-400 border-zinc-200'
+                  : 'border-l-pink-400 border-zinc-200'
+              }`}
+            >
               {/* Note Header */}
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-zinc-900">{getAuthorName(note.author_id)}</span>
-                    <span className="rounded-full bg-pink-100 text-pink-700 px-2 py-0.5 text-xs font-medium">
-                      Dietitian
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        isDietitianNote
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-pink-100 text-pink-700'
+                      }`}
+                    >
+                      {isDietitianNote ? 'Dietitian' : 'You'}
                     </span>
                   </div>
                   <p className="text-xs text-zinc-500 mt-0.5">{formatDate(note.created_at)}</p>
                 </div>
-                {userRole === 'dietitian' && note.author_id === user?.id && editingNoteId !== note.id && (
+                {note.author_id === user?.id && editingNoteId !== note.id && (
                   <div className="flex gap-2">
                     <button
                       onClick={() => startEditing(note.id, note.title, note.content)}
@@ -400,11 +414,11 @@ export default function DietitianNotesPage() {
                             <span
                               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                                 getAuthorRole(reply.author_id) === 'dietitian'
-                                  ? 'bg-pink-100 text-pink-700'
-                                  : 'bg-zinc-200 text-zinc-700'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-pink-100 text-pink-700'
                               }`}
                             >
-                              {getAuthorRole(reply.author_id) === 'dietitian' ? 'Dietitian' : 'Client'}
+                              {getAuthorRole(reply.author_id) === 'dietitian' ? 'Dietitian' : 'You'}
                             </span>
                             <span className="text-xs text-zinc-500">{formatDate(reply.created_at)}</span>
                           </div>
@@ -458,7 +472,8 @@ export default function DietitianNotesPage() {
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

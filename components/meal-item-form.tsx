@@ -70,6 +70,7 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
   const [baseNutrition, setBaseNutrition] = useState<BaseNutrition | null>(
     () => draft?.baseNutrition || null
   );
+  const [servingInfo, setServingInfo] = useState<string | null>(null);
 
   const clearDraft = useCallback(() => {
     if (draftKey) localStorage.removeItem(draftKey);
@@ -138,6 +139,7 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
       water: food.water,
     };
     setBaseNutrition(base);
+    setServingInfo(food.defaultAmount);
     setValue('food_name', food.name);
     setValue('serving', 1);
     scaleNutrition(base, 1);
@@ -311,6 +313,9 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
           />
           {errors.food_name && (
             <p className="mt-1 text-sm text-red-600">{errors.food_name.message}</p>
+          )}
+          {servingInfo && (
+            <p className="mt-1 text-xs text-green-700">USDA nutrition {servingInfo}</p>
           )}
         </div>
 
