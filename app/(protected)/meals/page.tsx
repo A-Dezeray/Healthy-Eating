@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { createClient } from '@/lib/supabase/client';
-import { Meal, MealType, DailyLog } from '@/lib/types';
+import { Meal, MealType, DailyLog, DailyGoals } from '@/lib/types';
 import { formatDateForDB, formatDateFull, getWeekStart } from '@/lib/utils/date';
 import { addDays } from 'date-fns';
 import { MealSection } from '@/components/meal-section';
@@ -29,7 +29,21 @@ export default function MealsPage() {
   const [dailyLog, setDailyLog] = useState<DailyLog | null>(null);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dailyGoals, setDailyGoals] = useState<DailyGoals | null>(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    if (user?.id) {
+      supabase
+        .from('user_profiles')
+        .select('daily_goals')
+        .eq('user_id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.daily_goals) setDailyGoals(data.daily_goals);
+        });
+    }
+  }, [user?.id]);
 
   const applyDate = (date?: string) => {
     const newDate = date || pendingDate;
@@ -180,21 +194,35 @@ export default function MealsPage() {
     if (!dailyLog) return;
 
     try {
-      // Fetch all meals with items
+      // Fetch all meals with items (no loading spinner — avoids scroll jump)
       const { data: mealsData, error } = await supabase
         .from('meals')
         .select(`
           *,
           meal_items (*)
         `)
-        .eq('daily_log_id', dailyLog.id);
+        .eq('daily_log_id', dailyLog.id)
+        .order('meal_order');
 
       if (error) throw error;
 
-      const totals = calculateDailyTotals(mealsData || []);
+      const freshMeals = mealsData || [];
+      const totals = calculateDailyTotals(freshMeals);
 
-      // Update daily log
-      const { error: updateError } = await supabase
+      // Update local state without triggering loading spinner
+      setMeals(freshMeals);
+      setDailyLog({
+        ...dailyLog,
+        total_calories: totals.calories,
+        total_carbs: totals.carbs,
+        total_fat: totals.fat,
+        total_fiber: totals.fiber,
+        total_protein: totals.protein,
+        water_intake: totals.water,
+      });
+
+      // Persist totals to DB in background
+      supabase
         .from('daily_logs')
         .update({
           total_calories: totals.calories,
@@ -204,12 +232,10 @@ export default function MealsPage() {
           total_protein: totals.protein,
           water_intake: totals.water,
         })
-        .eq('id', dailyLog.id);
-
-      if (updateError) throw updateError;
-
-      // Refresh data
-      await fetchDayData();
+        .eq('id', dailyLog.id)
+        .then(({ error: updateError }) => {
+          if (updateError) console.error('Error updating daily totals:', updateError);
+        });
     } catch (err) {
       console.error('Error updating daily totals:', err);
     }
@@ -262,6 +288,10 @@ export default function MealsPage() {
   const handleDeleteMeal = (mealId: string) => {
     const updatedMeals = meals.filter(meal => meal.id !== mealId);
     recalcAndUpdateTotals(updatedMeals);
+  };
+
+  const handleAddMealToState = (newMeal: Meal) => {
+    setMeals(prev => [...prev, newMeal]);
   };
 
   const toggleLock = () => {
@@ -362,30 +392,33 @@ export default function MealsPage() {
         <div className="rounded-lg border border-zinc-200 bg-white p-4">
           <h2 className="text-sm font-medium text-zinc-900">Daily Totals</h2>
           <div className="mt-2 grid grid-cols-2 gap-4 text-sm md:grid-cols-6">
-            <div>
-              <p className="text-zinc-600">Calories</p>
-              <p className="text-lg font-semibold">{dailyLog.total_calories}</p>
-            </div>
-            <div>
-              <p className="text-zinc-600">Protein</p>
-              <p className="text-lg font-semibold">{dailyLog.total_protein}g</p>
-            </div>
-            <div>
-              <p className="text-zinc-600">Carbs</p>
-              <p className="text-lg font-semibold">{dailyLog.total_carbs}g</p>
-            </div>
-            <div>
-              <p className="text-zinc-600">Fat</p>
-              <p className="text-lg font-semibold">{dailyLog.total_fat}g</p>
-            </div>
-            <div>
-              <p className="text-zinc-600">Fiber</p>
-              <p className="text-lg font-semibold">{dailyLog.total_fiber}g</p>
-            </div>
-            <div>
-              <p className="text-zinc-600">Water</p>
-              <p className="text-lg font-semibold">{dailyLog.water_intake} oz</p>
-            </div>
+            {[
+              { label: 'Calories', value: dailyLog.total_calories, goal: dailyGoals?.calories, unit: '', color: 'bg-green-500' },
+              { label: 'Protein', value: dailyLog.total_protein, goal: dailyGoals?.protein, unit: 'g', color: 'bg-blue-500' },
+              { label: 'Carbs', value: dailyLog.total_carbs, goal: dailyGoals?.carbs, unit: 'g', color: 'bg-orange-500' },
+              { label: 'Fat', value: dailyLog.total_fat, goal: dailyGoals?.fat, unit: 'g', color: 'bg-yellow-500' },
+              { label: 'Fiber', value: dailyLog.total_fiber, goal: dailyGoals?.fiber, unit: 'g', color: 'bg-purple-500' },
+              { label: 'Water', value: dailyLog.water_intake, goal: dailyGoals?.water, unit: ' oz', color: 'bg-pink-500', skipOver: true },
+            ].map(({ label, value, goal, unit, color, skipOver }) => {
+              const isOver = !skipOver && goal != null && value > goal;
+              const progress = goal ? Math.min((value / goal) * 100, 100) : 0;
+              return (
+                <div key={label}>
+                  <p className="text-zinc-600">{label}</p>
+                  <p className={`text-lg ${isOver ? 'font-bold text-red-600' : 'font-semibold'}`}>
+                    {value}{unit}
+                  </p>
+                  {goal != null && (
+                    <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100">
+                      <div
+                        className={`h-1.5 rounded-full ${isOver ? 'bg-red-500' : color}`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -401,6 +434,7 @@ export default function MealsPage() {
             onUpdate={updateDailyTotals}
             onDeleteItem={handleDeleteItem}
             onDeleteMeal={handleDeleteMeal}
+            onAddMeal={handleAddMealToState}
             isLocked={isLocked}
           />
         ))}

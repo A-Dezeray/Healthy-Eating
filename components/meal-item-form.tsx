@@ -56,11 +56,25 @@ function loadMealItemDraft(userId: string | undefined, mealId: string) {
   return null;
 }
 
+interface UserFood {
+  id: string;
+  name: string;
+  calories_per_serving: number;
+  protein_per_serving: number;
+  carbs_per_serving: number;
+  fat_per_serving: number;
+  fiber_per_serving: number;
+  water_per_serving: number;
+}
+
 export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [myFoods, setMyFoods] = useState<UserFood[]>([]);
+  const [showMyFoods, setShowMyFoods] = useState(false);
+  const [myFoodsQuery, setMyFoodsQuery] = useState('');
   const supabase = createClient();
 
   const draft = loadMealItemDraft(user?.id, mealId);
@@ -109,6 +123,41 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
     };
     localStorage.setItem(draftKey, JSON.stringify(draftData));
   }, [draftKey, formValues.food_name, formValues.serving, formValues.unit, formValues.calories, formValues.protein, formValues.carbs, formValues.fat, formValues.fiber, formValues.water, formValues.notes, baseNutrition]);
+
+  // Fetch user's saved foods
+  useEffect(() => {
+    if (user?.id) {
+      supabase
+        .from('foods')
+        .select('id, name, calories_per_serving, protein_per_serving, carbs_per_serving, fat_per_serving, fiber_per_serving, water_per_serving')
+        .eq('user_id', user.id)
+        .order('name')
+        .then(({ data }) => {
+          if (data) setMyFoods(data);
+        });
+    }
+  }, [user?.id]);
+
+  const filteredMyFoods = myFoods.filter(f =>
+    f.name.toLowerCase().includes(myFoodsQuery.toLowerCase())
+  );
+
+  const handleMyFoodSelect = (food: UserFood) => {
+    const base: BaseNutrition = {
+      calories: food.calories_per_serving,
+      protein: food.protein_per_serving || 0,
+      carbs: food.carbs_per_serving || 0,
+      fat: food.fat_per_serving || 0,
+      fiber: food.fiber_per_serving || 0,
+      water: food.water_per_serving || 0,
+    };
+    setBaseNutrition(base);
+    setValue('food_name', food.name);
+    setValue('serving', 1);
+    scaleNutrition(base, 1);
+    setShowMyFoods(false);
+    setMyFoodsQuery('');
+  };
 
   const scaleNutrition = (base: BaseNutrition, cups: number) => {
     setValue('calories', Math.round(base.calories * cups));
@@ -291,13 +340,55 @@ export function MealItemForm({ mealId, onSave, onCancel }: MealItemFormProps) {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={() => setSearchModalOpen(true)}
-          className="w-full rounded-md border-2 border-dashed border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
-        >
-          🔍 Search Food Database
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSearchModalOpen(true)}
+            className="flex-1 rounded-md border-2 border-dashed border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
+          >
+            Search USDA
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowMyFoods(!showMyFoods)}
+            className="flex-1 rounded-md border-2 border-dashed border-zinc-300 px-4 py-3 text-sm font-medium text-zinc-600 hover:border-zinc-400 hover:text-zinc-900"
+          >
+            My Foods
+          </button>
+        </div>
+
+        {showMyFoods && (
+          <div className="rounded-md border border-zinc-200 bg-white p-3 space-y-2">
+            <input
+              type="text"
+              placeholder="Filter my foods..."
+              value={myFoodsQuery}
+              onChange={(e) => setMyFoodsQuery(e.target.value)}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900"
+            />
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {filteredMyFoods.length === 0 ? (
+                <p className="text-sm text-zinc-500 text-center py-2">
+                  {myFoods.length === 0 ? 'No saved foods yet' : 'No matches'}
+                </p>
+              ) : (
+                filteredMyFoods.map((food) => (
+                  <button
+                    key={food.id}
+                    type="button"
+                    onClick={() => handleMyFoodSelect(food)}
+                    className="w-full text-left rounded-md px-3 py-2 text-sm hover:bg-zinc-50 transition-colors"
+                  >
+                    <p className="font-medium">{food.name}</p>
+                    <p className="text-xs text-zinc-500">
+                      {food.calories_per_serving} cal | P: {food.protein_per_serving || 0}g | C: {food.carbs_per_serving || 0}g | F: {food.fat_per_serving || 0}g
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">

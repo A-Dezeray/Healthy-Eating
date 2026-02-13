@@ -179,90 +179,32 @@ export default function DashboardPage() {
                 <h3 className="font-semibold">{formatDateForDisplay(date)}</h3>
                 {log ? (
                   <div className="mt-3 grid grid-cols-2 gap-4 text-sm md:grid-cols-6">
-                    <div>
-                      <p className="text-zinc-600">Calories</p>
-                      <p className="font-medium">{log.total_calories}</p>
-                      {dailyGoals && (
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100">
-                          <div
-                            className="h-1.5 rounded-full bg-green-500"
-                            style={{
-                              width: `${calculateProgress(log.total_calories, dailyGoals.calories)}%`,
-                            }}
-                          />
+                    {[
+                      { label: 'Calories', value: log.total_calories, goal: dailyGoals?.calories, unit: '', color: 'bg-green-500' },
+                      { label: 'Protein', value: log.total_protein, goal: dailyGoals?.protein, unit: 'g', color: 'bg-blue-500' },
+                      { label: 'Carbs', value: log.total_carbs, goal: dailyGoals?.carbs, unit: 'g', color: 'bg-orange-500' },
+                      { label: 'Fat', value: log.total_fat, goal: dailyGoals?.fat, unit: 'g', color: 'bg-yellow-500' },
+                      { label: 'Fiber', value: log.total_fiber, goal: dailyGoals?.fiber, unit: 'g', color: 'bg-purple-500' },
+                      { label: 'Water', value: log.water_intake, goal: dailyGoals?.water, unit: ' oz', color: 'bg-pink-500', skipOver: true },
+                    ].map(({ label, value, goal, unit, color, skipOver }) => {
+                      const isOver = !skipOver && goal != null && value > goal;
+                      return (
+                        <div key={label}>
+                          <p className="text-zinc-600">{label}</p>
+                          <p className={isOver ? 'font-bold text-red-600' : 'font-medium'}>
+                            {value}{unit}
+                          </p>
+                          {goal != null && (
+                            <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100">
+                              <div
+                                className={`h-1.5 rounded-full ${isOver ? 'bg-red-500' : color}`}
+                                style={{ width: `${calculateProgress(value, goal)}%` }}
+                              />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-zinc-600">Protein</p>
-                      <p className="font-medium">{log.total_protein}g</p>
-                      {dailyGoals && (
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100">
-                          <div
-                            className="h-1.5 rounded-full bg-blue-500"
-                            style={{
-                              width: `${calculateProgress(log.total_protein, dailyGoals.protein)}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-zinc-600">Carbs</p>
-                      <p className="font-medium">{log.total_carbs}g</p>
-                      {dailyGoals && (
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100">
-                          <div
-                            className="h-1.5 rounded-full bg-orange-500"
-                            style={{
-                              width: `${calculateProgress(log.total_carbs, dailyGoals.carbs)}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-zinc-600">Fat</p>
-                      <p className="font-medium">{log.total_fat}g</p>
-                      {dailyGoals && (
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100">
-                          <div
-                            className="h-1.5 rounded-full bg-yellow-500"
-                            style={{
-                              width: `${calculateProgress(log.total_fat, dailyGoals.fat)}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-zinc-600">Fiber</p>
-                      <p className="font-medium">{log.total_fiber}g</p>
-                      {dailyGoals && (
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100">
-                          <div
-                            className="h-1.5 rounded-full bg-purple-500"
-                            style={{
-                              width: `${calculateProgress(log.total_fiber, dailyGoals.fiber)}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-zinc-600">Water</p>
-                      <p className="font-medium">{log.water_intake} oz</p>
-                      {dailyGoals && (
-                        <div className="mt-1 h-1.5 w-full rounded-full bg-zinc-100">
-                          <div
-                            className="h-1.5 rounded-full bg-pink-500"
-                            style={{
-                              width: `${calculateProgress(log.water_intake, dailyGoals.water)}%`,
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="mt-2 text-sm text-zinc-500">No meals logged yet</p>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Meal, MealType, MealItem } from '@/lib/types';
+import { Meal, MealType } from '@/lib/types';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { MealItemForm } from './meal-item-form';
@@ -16,6 +16,7 @@ interface MealSectionProps {
   onUpdate: () => void;
   onDeleteItem: (mealId: string, itemId: string) => void;
   onDeleteMeal: (mealId: string) => void;
+  onAddMeal: (newMeal: Meal) => void;
   isLocked?: boolean;
 }
 
@@ -27,6 +28,7 @@ export function MealSection({
   onUpdate,
   onDeleteItem,
   onDeleteMeal,
+  onAddMeal,
   isLocked = false,
 }: MealSectionProps) {
   const { user } = useAuth();
@@ -59,7 +61,10 @@ export function MealSection({
 
       if (error) throw error;
 
-      setCurrentMeal(data);
+      // Add new meal with empty items to parent state so it renders immediately
+      const newMeal: Meal = { ...data, meal_items: [] };
+      onAddMeal(newMeal);
+      setCurrentMeal(newMeal);
       setIsAddingItem(true);
       setIsExpanded(true);
     } catch (err) {
